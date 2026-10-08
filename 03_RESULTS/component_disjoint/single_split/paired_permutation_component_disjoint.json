@@ -1,0 +1,20 @@
+{
+  "protocol": "component_disjoint",
+  "test_samples": 507,
+  "source_counts": {
+    "train": 410,
+    "val": 55,
+    "test": 42
+  },
+  "raw_accuracy": 0.9151873767258383,
+  "sil_accuracy": 0.9428007889546351,
+  "observed_difference_pp": 2.7613412228796874,
+  "sil_only_correct": 23,
+  "raw_only_correct": 9,
+  "both_correct": 455,
+  "both_wrong": 20,
+  "disagreement_cases": 32,
+  "n_permutations": 20000,
+  "seed": 20261005,
+  "paired_permutation_p": 0.006849657517124144
+}

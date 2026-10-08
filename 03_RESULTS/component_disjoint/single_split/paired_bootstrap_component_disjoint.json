@@ -1,0 +1,15 @@
+{
+  "protocol": "component_disjoint_test",
+  "n_test": 507,
+  "seed": 20261005,
+  "n_bootstrap": 20000,
+  "raw_accuracy": 0.9151873767258383,
+  "sil_v2_accuracy": 0.9428007889546351,
+  "observed_difference_pp": 2.7613412228796874,
+  "bootstrap_ci_95_pp": [
+    0.591715976331364,
+    4.930966469428011
+  ],
+  "two_sided_bootstrap_p": 0.0149,
+  "interpretation": "SIL-v2 advantage is supported by the paired bootstrap if the 95% CI excludes zero."
+}

@@ -1,0 +1,44 @@
+{
+  "seed": 42,
+  "bootstrap_seed": 20261005,
+  "bootstrap_replicates": 20000,
+  "test_samples": 500,
+  "condition": "dynamic_swap_different_class",
+  "normalization": "train_fitted_per_subcarrier_mean_std",
+  "dynamic_swap_static_max_error": 4.798173904418945e-06,
+  "accuracies": {
+    "raw_ce": 62.2,
+    "generic_consistency": 45.2,
+    "sil_v2": 42.4
+  },
+  "comparisons": {
+    "SIL_v2_minus_GENERIC": {
+      "accuracy_a": 42.4,
+      "accuracy_b": 45.2,
+      "difference_pp": -2.8000000000000025,
+      "ci95_low_pp": -6.4,
+      "ci95_high_pp": 0.8000000000000007,
+      "bootstrap_p_value_two_sided": 0.1529,
+      "n_bootstrap": 20000
+    },
+    "SIL_v2_minus_RAW_CE": {
+      "accuracy_a": 42.4,
+      "accuracy_b": 62.2,
+      "difference_pp": -19.8,
+      "ci95_low_pp": -23.799999999999997,
+      "ci95_high_pp": -15.799999999999997,
+      "bootstrap_p_value_two_sided": 0.0,
+      "n_bootstrap": 20000
+    },
+    "GENERIC_minus_RAW_CE": {
+      "accuracy_a": 45.2,
+      "accuracy_b": 62.2,
+      "difference_pp": -17.0,
+      "ci95_low_pp": -21.000000000000004,
+      "ci95_high_pp": -13.0,
+      "bootstrap_p_value_two_sided": 0.0,
+      "n_bootstrap": 20000
+    }
+  },
+  "primary_decision": "The SIL-v2 versus generic difference on dynamic-swap is inconclusive."
+}

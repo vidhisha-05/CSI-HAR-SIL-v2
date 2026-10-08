@@ -1,0 +1,563 @@
+\documentclass[runningheads]{llncs}
+
+% Springer LNCS camera-ready draft
+% Current CSI-HAR SIL-v2 paper
+% Figures are intentionally placeholders and can be replaced later.
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{float}
+
+\newcommand{\method}{SIL-v2}
+\newcommand{\pp}{\ensuremath{\,\mathrm{pp}}}
+\newcommand{\placeholder}[2]{%
+\begin{center}
+\fbox{\begin{minipage}[c][#1][c]{0.94\linewidth}
+\centering
+\textbf{Figure placeholder}\\[2mm]
+#2\\[1mm]
+\textit{Replace this box with the final camera-ready figure.}
+\end{minipage}}
+\end{center}
+}
+
+\begin{document}
+
+\title{Component-Targeted Invariance Learning for Robust Wi-Fi CSI Human Activity Recognition}
+
+\titlerunning{Component-Targeted Invariance Learning for Wi-Fi CSI HAR}
+
+\author{Vidhisha Chandankar\inst{1} \and
+Shivani Doggala\inst{1} \and
+Anamika Singh\inst{1}}
+
+\authorrunning{V. Chandankar et al.}
+
+\institute{Visvesvaraya National Institute of Technology, Nagpur, India\\
+\email{bt23ece053@students.vnit.ac.in}}
+
+\maketitle
+
+\begin{abstract}
+Wi-Fi channel state information (CSI) enables device-free human activity recognition (HAR), but conventional benchmark evaluation can contain substantial temporal-window redundancy and can therefore overstate generalization. In addition, a CSI sequence contains both temporally stable channel structure and motion-induced variation, making it difficult to determine whether a classifier is relying on activity-related changes or on stable channel cues. We study this problem without claiming real cross-room validation. We introduce a simple component-targeted invariance objective, SIL-v2, that decomposes each CSI window into a temporally stable component and a temporal residual, perturbs only the stable component, reconstructs a label-preserving synthetic view, and encourages the encoder representations of the two views to remain close. The method uses the same compact convolutional encoder as a cross-entropy baseline, allowing the effect of the proposed training procedure to be evaluated without an architecture change. On the supplied UT-HAR split, the raw cross-entropy baseline reaches 99.00\% accuracy and SIL-v2 reaches 96.60\%, exposing a 2.40 percentage-point clean-accuracy cost. Under controlled static-component perturbations, however, the gap reverses: at Gaussian perturbation strength $\sigma=0.4$, SIL-v2 reaches 91.40\% versus 63.00\% for the baseline, and at $\sigma=0.8$ the corresponding accuracies are 74.40\% and 41.40\%. We further audit temporal redundancy in the supplied windows and construct a component-disjoint partition with no shared exact 150-row CSI blocks between train, validation, and test. Under this stricter protocol, SIL-v2 improves accuracy from 91.52\% to 94.28\% ($+2.76\pp$), with a paired-bootstrap 95\% confidence interval of $[+0.59,+4.93]\pp$ and paired-permutation $p=0.00685$. In five component-disjoint folds, SIL-v2 wins all five folds and improves mean accuracy by $1.11\pm0.23\pp$. These results support component-targeted robustness to controlled static-channel variation; they do not establish real multi-room generalization or prove that the stable component is a room fingerprint.
+\keywords{Wi-Fi sensing \and channel state information \and human activity recognition \and representation learning \and invariance learning \and domain generalization}
+\end{abstract}
+
+\section{Introduction}
+
+Wi-Fi channel state information (CSI) exposes how a wireless channel modifies transmitted signals across subcarriers and time. Because human motion changes propagation paths, CSI can be used for device-free sensing without cameras or body-worn sensors~\cite{halperin2011tool,ma2019wifi,yousefi2017survey}. Deep learning has made CSI-based human activity recognition (HAR) particularly effective, with convolutional, recurrent, and transformer-based models achieving high accuracy on established benchmarks~\cite{shi2022sensefi}. The difficulty is that a CSI sequence does not contain only motion information. It also contains channel structure that is relatively stable over the duration of a window, together with hardware- and environment-dependent effects.
+
+This creates an evaluation question that is different from ordinary classification accuracy: \emph{how much of the learned decision rule remains useful when stable channel structure is changed while the temporal content of the activity is retained?} The question is important because many CSI-HAR benchmarks are constructed from overlapping temporal windows. If windows from the same underlying temporal sequence occur in different supplied splits, neighboring samples can share long exact CSI segments. A model may therefore obtain a high test score without that score representing independence at the recording or episode level.
+
+We investigate these two issues jointly. First, we define a simple stable-component intervention. For an input window $X(t,k)$, we compute the temporal mean $S(k)$ and residual $D(t,k)=X(t,k)-S(k)$. A synthetic view is created by perturbing only $S(k)$ and then adding the unchanged residual back. This construction does not assert that $S(k)$ is literally a room fingerprint. Instead, it provides a controlled way to ask whether the representation can remain stable when a temporally stable channel component is changed.
+
+Second, we separate the supplied benchmark protocol from a stricter component-disjoint protocol. We identify groups of windows that share exact 150-row CSI blocks, assign entire connected components to one partition, and verify that no exact 150-row block is shared between the resulting train, validation, and test sets. This directly addresses temporal-window redundancy rather than treating a random window-level split as evidence of recording-independent generalization.
+
+We then compare a raw-CSI cross-entropy baseline and \method{} using the \emph{same encoder architecture}. This is an important methodological control. The proposed method is not evaluated with a larger recurrent or attention-based network against a weaker baseline; the input representation, encoder, and classifier are kept matched, while \method{} adds the component-targeted perturbation and consistency objective.
+
+Our contributions are therefore deliberately narrower than the claims in the earlier version of this work:
+
+\begin{itemize}[leftmargin=*]
+    \item We formulate a simple \emph{component-targeted invariance} objective for CSI-HAR that perturbs a temporally stable component while preserving the temporal residual.
+    \item We provide a matched raw-CSI cross-entropy baseline using the same compact convolutional encoder, separating the proposed learning procedure from an architecture change.
+    \item We introduce a temporal-overlap audit and a component-disjoint evaluation protocol for the supplied UT-HAR windows, and verify zero shared exact 150-row CSI blocks across the new partitions.
+    \item We evaluate the method using paired static perturbations, unseen static transformations, a dynamic intervention control, and paired statistical tests rather than relying on a single clean-accuracy number.
+    \item We show that the clean-accuracy cost on the supplied split is accompanied by a consistent gain under the stricter component-disjoint protocol: \method{} wins all five component-disjoint folds.
+\end{itemize}
+
+We explicitly do not claim real cross-room generalization. The perturbation experiments are controlled synthetic channel-variation stress tests, and the component-disjoint protocol removes a form of temporal redundancy but does not replace a genuine multi-room collection.
+
+\section{Related Work}
+
+\subsection{Wi-Fi CSI Human Activity Recognition}
+
+Early Wi-Fi sensing systems used handcrafted signal representations and temporal statistics, while later work adopted convolutional and recurrent neural networks and, more recently, transformer architectures. WiGest demonstrated Wi-Fi-based gesture recognition using commodity infrastructure~\cite{abdelnasser2015wigest}, and surveys have documented the broader evolution of CSI-based sensing~\cite{yousefi2017survey,ma2019wifi}. SenseFi provides a unified library and benchmark for deep-learning-based Wi-Fi human sensing and highlights the strong performance obtainable from standard deep architectures~\cite{shi2022sensefi}. These results motivate a complementary question: whether benchmark accuracy remains stable when channel conditions are deliberately altered.
+
+\subsection{Environment and Domain Dependence}
+
+Environment dependence has long been recognized in device-free sensing. Cross-environment activity recognition has been studied using representations designed to suppress environmental variation or using alternative physical descriptors~\cite{jiang2018towards,zheng2019widar3,wang2021ei}. Widar3.0, for example, uses Wi-Fi sensing representations intended to support cross-domain gesture recognition~\cite{zheng2019widar3}. These approaches demonstrate the importance of domain variation, but they do not directly answer whether a standard CSI-HAR representation can be made less sensitive to a specific, temporally stable component of a CSI window using data from a single supplied environment.
+
+Our work is intentionally narrower. We do not introduce a claim of physical environment disentanglement. Instead, we construct an intervention on a measurable stable component and evaluate the resulting invariance under controlled transformations.
+
+\subsection{Invariance and Contrastive Representation Learning}
+
+Invariant representation learning has been explored through objectives that encourage representations to remain stable across transformations. Invariant Risk Minimization formalizes invariance across environments~\cite{arjovsky2019irm}; supervised contrastive learning encourages examples with the same class label to occupy nearby regions of representation space~\cite{khosla2020supervised}; and VICReg combines invariance, variance, and covariance regularization~\cite{bardes2022vicreg}. The present method uses a substantially simpler objective. Rather than applying a general collection of augmentations or a multi-term representation regularizer, we construct a specific synthetic view by changing only the temporally stable CSI component and use a cosine consistency term together with classification losses.
+
+\subsection{Benchmark Leakage and Evaluation Protocols}
+
+Shortcut learning can occur when predictive variables are correlated with the target for reasons that do not reflect the intended mechanism~\cite{geirhos2020shortcut}. In windowed time-series benchmarks, an analogous issue can arise from correlated or overlapping samples across nominal train and test partitions. Our temporal-overlap audit is therefore not presented as proof of label leakage or as evidence of misconduct in the benchmark construction. It is a provenance and independence audit: it quantifies exact shared CSI blocks and motivates a component-disjoint re-partition for a stricter evaluation.
+
+\section{Problem Formulation and Method}
+
+\subsection{CSI Window Representation}
+
+Let a CSI window be represented as
+\begin{equation}
+    X \in \mathbb{R}^{T\times K},
+\end{equation}
+where $T=250$ is the number of temporal samples and $K=90$ is the number of subcarrier features in the supplied UT-HAR arrays. The associated activity label is $y\in\{1,\ldots,7\}$.
+
+We use the CSI values directly apart from train-fitted per-subcarrier normalization. In particular, the current method does not use the earlier Hampel filtering, temporal detrending, band-pass filtering, velocity/acceleration enrichment, or STFT pipeline. This distinction is important because those earlier operations would modify the very stable component that the present intervention is designed to perturb.
+
+\subsection{Stable-Component Decomposition}
+
+For each window, we define a temporally stable component by the temporal mean
+\begin{equation}
+    S(k)=\frac{1}{T}\sum_{t=1}^{T}X(t,k),
+\end{equation}
+and a temporal residual
+\begin{equation}
+    D(t,k)=X(t,k)-S(k).
+\end{equation}
+Thus,
+\begin{equation}
+    X(t,k)=S(k)+D(t,k).
+\end{equation}
+
+We refer to $S$ as a \emph{stable temporal component} or \emph{static-component proxy}. This terminology is deliberate. The temporal mean is not sufficient to establish that a component corresponds causally to room geometry, and we do not identify it as a proven room fingerprint.
+
+\subsection{Component-Targeted Perturbation}
+
+We perturb the stable component while leaving the temporal residual unchanged. For each subcarrier,
+\begin{equation}
+    \widetilde{S}(k)=(1+g_k)S(k),
+    \qquad
+    g_k\sim\mathcal{N}(0,\sigma^2),
+\end{equation}
+with $\sigma=0.4$ during training. The perturbed CSI window is reconstructed as
+\begin{equation}
+    \widetilde{X}(t,k)=\widetilde{S}(k)+D(t,k).
+\end{equation}
+
+The construction has a useful exact property: the temporal residual is preserved by construction,
+\begin{equation}
+    \widetilde{X}(t,k)-\widetilde{S}(k)=D(t,k).
+\end{equation}
+In implementation, the maximum numerical reconstruction discrepancy in the paired static-swap audit was $4.44\times10^{-6}$.
+
+The perturbation should be interpreted as a controlled static-channel stress test. It is not a physical simulator of a different room.
+
+\subsection{Learning Objective}
+
+Let $f_\theta$ be the shared encoder and $h_\phi$ the classifier. We obtain
+\begin{equation}
+    z=f_\theta(X), \qquad
+    \widetilde{z}=f_\theta(\widetilde{X}).
+\end{equation}
+The training loss is
+\begin{equation}
+\mathcal{L}
+=
+\mathcal{L}_{\mathrm{CE}}(h_\phi(z),y)
++
+\alpha\mathcal{L}_{\mathrm{CE}}(h_\phi(\widetilde{z}),y)
++
+\lambda
+\left(
+1-\frac{z^\top\widetilde{z}}
+{\|z\|_2\|\widetilde{z}\|_2}
+\right),
+\label{eq:objective}
+\end{equation}
+where
+\begin{equation}
+    \alpha=1.0,\qquad \lambda=0.15.
+\end{equation}
+
+The first two terms require both the original and perturbed views to remain class-discriminative. The third term encourages representation consistency under the targeted static perturbation.
+
+Unlike the earlier version of the work, we do not use adaptive hard-negative mining, VICReg variance/covariance terms, supervised contrastive hard-negative selection, derivative enrichment, or a separate environment classifier. The simpler objective makes the intended intervention easier to audit.
+
+\subsection{Encoder and Optimization}
+
+The encoder is identical for the raw cross-entropy baseline and \method{}. It consists of three convolutional blocks followed by global average pooling and a 128-dimensional projection:
+\begin{itemize}[leftmargin=*]
+    \item Conv2D $1\rightarrow32$, kernel $7\times5$, batch normalization, ReLU, $2\times2$ max pooling;
+    \item Conv2D $32\rightarrow64$, kernel $5\times3$, batch normalization, ReLU, $2\times2$ max pooling;
+    \item Conv2D $64\rightarrow128$, kernel $3\times3$, batch normalization, ReLU;
+    \item adaptive global average pooling;
+    \item linear projection to 128 dimensions and a 7-class classifier.
+\end{itemize}
+
+Both models use the same train-fitted per-subcarrier normalization, batch size 64, learning rate $10^{-3}$, weight decay $5\times10^{-4}$, maximum 150 epochs, patience 20, and random seed 42 for the fixed experiments. The component-disjoint five-fold experiment uses the same training procedure independently within each fold.
+
+\begin{figure}[t]
+\centering
+\placeholder{5.2cm}{
+\textbf{Figure 1. Component-targeted invariance mechanism.}\\
+Raw CSI $X$ is decomposed into the stable component $S$ and temporal residual $D$. Only $S$ is perturbed, the original $D$ is restored to form $\widetilde X$, and both views are processed by a shared encoder. The classification losses preserve activity discrimination while the cosine term encourages representation consistency.
+}
+\caption{Overview of \method{}. The perturbation is targeted to the temporally stable component and preserves the temporal residual by construction.}
+\label{fig:method}
+\end{figure}
+
+\section{Experimental Protocol}
+
+\subsection{Dataset}
+
+We use the supplied UT-HAR CSI arrays. The training, validation, and test arrays contain 3977, 496, and 500 windows, respectively, with each window containing 250 temporal rows and 90 CSI features. The seven activity classes are Lie Down, Fall, Walk, Pickup, Run, Sit Down, and Stand Up.
+
+The supplied split is treated as a \emph{window-level benchmark protocol}. We do not reinterpret its nominal train/test separation as proof of recording-independent or room-independent generalization.
+
+\begin{table}[t]
+\centering
+\caption{UT-HAR data used in the experiments.}
+\label{tab:dataset}
+\begin{tabular}{lccc}
+\toprule
+Partition & Windows & Temporal rows/window & CSI features/window\\
+\midrule
+Supplied train & 3977 & 250 & 90\\
+Supplied validation & 496 & 250 & 90\\
+Supplied test & 500 & 250 & 90\\
+\midrule
+Component-disjoint train & 3968 & 250 & 90\\
+Component-disjoint validation & 498 & 250 & 90\\
+Component-disjoint test & 507 & 250 & 90\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Temporal-Overlap Audit}
+
+The supplied windows were audited for exact temporal redundancy. We searched for shared contiguous 150-row CSI blocks and formed connected components when windows shared such a block. Across the 4973 supplied windows, the audit produced 556 connected components. Of these, 442 contained at least five windows, 161 contained at least ten, 45 contained at least twenty, and none contained at least fifty. The largest component contained 28 windows.
+
+Importantly, 425 of the 556 components contained windows from more than one of the supplied train, validation, and test partitions. All 556 components were label-pure under the supplied labels. These observations show that the supplied partitions contain substantial groups of temporally overlapping windows. We do not call these groups ``leaked'' because the original recording provenance is not reconstructed here. Instead, the audit motivates a stricter component-disjoint protocol.
+
+\subsection{Component-Disjoint Evaluation}
+
+Entire connected components were assigned to train, validation, or test so that no component was split across partitions. The resulting sizes were 3968, 498, and 507 windows.
+
+The resulting class counts were
+\begin{align*}
+\text{train} &= [526,353,1164,395,967,319,244],\\
+\text{validation} &= [63,45,151,50,118,41,30],\\
+\text{test} &= [68,45,150,50,124,40,30].
+\end{align*}
+
+The partition was independently verified by enumerating unique 150-row CSI blocks. There were 396,812 unique blocks in train, 49,871 in validation, and 50,773 in test, with zero exact block intersections for every pair of partitions. Thus the strict protocol has zero shared exact 150-row CSI blocks across its three partitions.
+
+\begin{figure}[t]
+\centering
+\placeholder{5.0cm}{
+\textbf{Figure 2. Temporal-overlap audit and component-disjoint protocol.}\\
+Panel A: supplied windows form connected overlap components using shared 150-row CSI blocks; many components span nominal supplied splits. Panel B: entire components are assigned to one partition, followed by zero-overlap verification. The final figure should use a clean schematic rather than a dense flowchart.
+}
+\caption{Evaluation protocol. The supplied window-level split contains substantial exact temporal overlap. The strict evaluation assigns complete overlap components to a single partition and verifies zero shared exact 150-row blocks.}
+\label{fig:protocol}
+\end{figure}
+
+\subsection{Matched Baseline}
+
+The primary baseline is a raw-CSI classifier trained only with cross-entropy. It uses the same encoder, normalization, optimizer settings, and training budget as \method{}. The only methodological difference is that the baseline does not construct the targeted perturbed view or apply the consistency term.
+
+This matched comparison directly addresses the architecture confound: any difference between the two models cannot be attributed to a larger recurrent, transformer, or attention-based architecture.
+
+We do not present previously reported BiLSTM/CNN-GRU/ViT benchmark scores as matched baselines for the current experiments. The earlier comparisons used different inputs and preprocessing pipelines and therefore would not provide a controlled causal comparison.
+
+\subsection{Robustness and Intervention Tests}
+
+The main robustness test varies the Gaussian static-component perturbation strength using $\sigma\in\{0.1,0.2,0.4,0.8\}$.
+
+Three additional static interventions are used:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{uniform static gain:} a common gain perturbation at $\sigma=0.4$;
+    \item \textbf{additive static offset:} an additive change to the stable component;
+    \item \textbf{static swap:} the stable component is replaced using a different-class donor while preserving the target window's temporal residual.
+\end{enumerate}
+
+A dynamic-swap control replaces the temporal residual while retaining the static component. This intervention is deliberately interpreted cautiously because replacing a dynamic component can alter label-relevant information.
+
+Time shuffling is included as a negative control for temporal organization. The method is not expected to be robust to arbitrary temporal destruction.
+
+\subsection{Statistical Testing}
+
+For the 500-window static-swap experiment, identical perturbation realizations are applied to the compared models and predictions are paired by test example. We use paired bootstrap resampling with 20,000 replicates and report a 95\% confidence interval.
+
+For the component-disjoint test, we similarly report a paired bootstrap interval over 507 test predictions and a two-sided paired permutation test with 20,000 permutations. The permutation test exchanges model identities within disagreement pairs while retaining the paired test structure.
+
+The five-fold component-disjoint experiment provides an additional estimate of variability across independent component-level partitions. We report the mean and standard deviation over the five fold-level test results.
+
+\section{Results}
+
+\subsection{Clean Performance on the Supplied Split}
+
+On the supplied window-level test set, the raw cross-entropy baseline achieves 99.00\% accuracy, while \method{} achieves 96.60\%. Thus \method{} incurs a 2.40\pp clean-accuracy cost.
+
+This result is important rather than inconvenient: the proposed method is not simply a regularizer that improves every condition. Its intended benefit is robustness to changes in the targeted stable component. Consequently, the clean result and the stress-test results should be interpreted together.
+
+\subsection{Robustness to Static-Component Perturbation}
+
+Table~\ref{tab:robustness} reports the complete paired static-gain sweep. At $\sigma=0.1$, the baseline remains slightly better (97.80\% versus 96.60\%). At $\sigma=0.2$, the ordering reverses. The advantage grows to 28.40\pp at $\sigma=0.4$ and 33.00\pp at $\sigma=0.8$.
+
+\begin{table}[t]
+\centering
+\caption{Accuracy under controlled static-component gain perturbations.}
+\label{tab:robustness}
+\begin{tabular}{ccc}
+\toprule
+$\sigma$ & Raw CE (\%) & \method{} (\%)\\
+\midrule
+0.0 & 99.00 & 96.60\\
+0.1 & 97.80 & 96.60\\
+0.2 & 89.80 & 95.60\\
+0.4 & 63.00 & 91.40\\
+0.8 & 41.40 & 74.40\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pattern is more informative than a single robustness score. The baseline degrades increasingly rapidly as the stable component is perturbed, whereas \method{} retains substantially more of its classification accuracy. At the strongest tested perturbation, \method{} remains 33.00\pp above the raw baseline despite starting 2.40\pp below it on clean data.
+
+\begin{figure}[t]
+\centering
+\placeholder{5.5cm}{
+\textbf{Figure 3. Static-perturbation robustness.}\\
+Panel A: accuracy versus Gaussian static-component perturbation strength $\sigma$.\\
+Panel B: clean, uniform static gain, additive static offset, and static swap.\\
+Panel C: static-swap versus dynamic-swap control.\\
+Use one consistent color for Raw CE and one for SIL-v2, with restrained annotations.
+}
+\caption{Robustness to controlled static-component variation. \method{} sacrifices a small amount of clean accuracy but becomes substantially more robust as the targeted static perturbation increases. The unseen static transformations provide an additional stress test, while the dynamic intervention acts as a control rather than evidence of universal robustness.}
+\label{fig:robustness}
+\end{figure}
+
+\subsection{Generalization to Unseen Static Transformations}
+
+The robustness advantage extends beyond the Gaussian per-subcarrier gain used during training. Under a uniform static gain with $\sigma=0.4$, Raw CE falls to 62.40\%, whereas \method{} achieves 93.40\%, a 31.00\pp advantage. Under an additive static offset, the corresponding values are 43.60\% and 75.40\%, a 31.80\pp advantage. Under static swapping, the values are 19.80\% and 41.40\%, giving a 21.60\pp advantage.
+
+These results support the narrower claim that the learned representation is less sensitive to several controlled transformations of the stable component. They do not establish invariance to arbitrary channel changes.
+
+\subsection{Static Versus Dynamic Intervention}
+
+The static/dynamic comparison provides an important negative control. Under static swapping, \method{} improves over Raw CE by 21.60\pp. Under dynamic swapping, however, Raw CE achieves 62.20\% while \method{} achieves 42.40\%. The method therefore does not simply become robust to any component replacement.
+
+This asymmetry is consistent with the training objective: the method explicitly encourages invariance to transformations of the stable component, whereas the temporal residual is retained as the activity-bearing part of the reconstructed training view. At the same time, the dynamic-swap result is not evidence of perfect dynamic disentanglement because the intervention itself can replace label-relevant motion information.
+
+\subsection{Strict Component-Disjoint Evaluation}
+
+The strict protocol changes the conclusion about clean generalization. On the component-disjoint test set, Raw CE achieves 91.52\% accuracy and 0.8936 macro-F1, while \method{} achieves 94.28\% accuracy and 0.9197 macro-F1. The accuracy advantage is therefore $+2.76\pp$ and the macro-F1 advantage is $+2.61\pp$.
+
+\begin{table}[t]
+\centering
+\caption{Matched performance under the supplied and component-disjoint protocols.}
+\label{tab:strict}
+\begin{tabular}{lccccc}
+\toprule
+Protocol & \multicolumn{2}{c}{Accuracy (\%)} & $\Delta$Acc. & \multicolumn{2}{c}{Macro-F1}\\
+& Raw CE & \method{} & (\pp) & Raw CE & \method{}\\
+\midrule
+Supplied split & 99.00 & 96.60 & -2.40 & -- & --\\
+Component-disjoint & 91.52 & 94.28 & +2.76 & 0.8936 & 0.9197\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The paired bootstrap 95\% confidence interval for the component-disjoint accuracy difference is $[+0.59,+4.93]\pp$, excluding zero. The paired permutation test gives $p=0.00685$. The prediction agreement counts are also informative: both models are correct on 455 of 507 test windows, both are wrong on 20, Raw CE alone is correct on 9, and \method{} alone is correct on 23. Thus the improvement is concentrated in the disagreement cases rather than arising from a wholesale change in every prediction.
+
+\begin{figure}[t]
+\centering
+\placeholder{5.5cm}{
+\textbf{Figure 4. Strict evaluation and generalization.}\\
+Panel A: temporal-overlap components and component-disjoint reassignment.\\
+Panel B: Raw CE versus SIL-v2 on the supplied split and strict component-disjoint split.\\
+Panel C (optional): paired prediction agreement on the strict test set.\\
+Keep the strict result visually dominant and place CI/p-value in a compact annotation.
+}
+\caption{Evaluation under the supplied and component-disjoint protocols. The strict protocol removes exact 150-row CSI-block overlap across the new partitions. \method{} changes from a 2.40\pp clean-accuracy deficit on the supplied split to a 2.76\pp advantage on the component-disjoint test set.}
+\label{fig:strict}
+\end{figure}
+
+\subsection{Five-Fold Component-Disjoint Reproducibility}
+
+The strict result is not confined to one repartition. Across five component-disjoint folds, \method{} wins every fold. Table~\ref{tab:fivefold} gives the exact fold-level results.
+
+\begin{table}[t]
+\centering
+\caption{Five-fold component-disjoint test performance.}
+\label{tab:fivefold}
+\begin{tabular}{c r r r r r}
+\toprule
+Fold & Raw Acc. (\%) & SIL Acc. (\%) & $\Delta$ (\pp) & Raw F1 & SIL F1\\
+\midrule
+1 & 93.8693 & 94.8744 & +1.0050 & 0.897823 & 0.920650\\
+2 & 92.9577 & 93.7626 & +0.8048 & 0.893197 & 0.903288\\
+3 & 92.5628 & 93.6683 & +1.1055 & 0.888476 & 0.900694\\
+4 & 91.5323 & 92.9435 & +1.4113 & 0.891203 & 0.907345\\
+5 & 92.3771 & 93.5807 & +1.2036 & 0.879986 & 0.900045\\
+\midrule
+Mean $\pm$ SD & $92.66\pm0.85$ & $93.77\pm0.70$ & $+1.11\pm0.23$ & $0.8901\pm0.0066$ & $0.9064\pm0.0085$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The mean accuracy improvement is $1.11\pm0.23\pp$, while macro-F1 improves by $0.0163\pm0.0053$. The fact that the method wins all five folds provides stronger evidence than a single split, although five folds are not a substitute for independent multi-room data.
+
+\begin{figure}[t]
+\centering
+\placeholder{5.0cm}{
+\textbf{Figure 5. Five-fold component-disjoint reproducibility.}\\
+Plot the exact fold-level Raw CE and SIL-v2 accuracies as paired points/lines for folds 1--5. Add a compact aggregate mean$\pm$SD summary. A second small panel may show macro-F1.
+}
+\caption{Five-fold component-disjoint evaluation. \method{} improves accuracy in all five folds, with a mean advantage of $1.11\pm0.23\pp$.}
+\label{fig:fivefold}
+\end{figure}
+
+\subsection{What the Results Do and Do Not Establish}
+
+The experiments support three conclusions.
+
+First, the proposed representation is substantially more stable under controlled transformations of the temporally stable CSI component. This is directly demonstrated by the static-gain sweep and by unseen static transformations.
+
+Second, the effect is not equivalent to generic robustness. The dynamic-swap and time-shuffle controls do not show the same benefit. In particular, time shuffling gives 49.20\% for Raw CE and 39.60\% for \method{}, reinforcing that the proposed method should not be described as universally transformation-invariant.
+
+Third, the stricter evaluation protocol changes the relative clean-performance ordering. The matched raw baseline is stronger on the supplied window-level split, but \method{} is stronger on the component-disjoint split and across all five component-disjoint folds. This is the central evidence that motivates the method as a robustness-oriented learning objective rather than as a clean-benchmark accuracy maximizer.
+
+\section{Discussion}
+
+\subsection{Relation to the Reviewer Concerns}
+
+The revised experimental design directly addresses the main methodological concerns raised during review.
+
+\textbf{Synthetic versus real cross-room evaluation.}
+The present paper no longer describes synthetic perturbations as real cross-room generalization. All perturbation experiments are explicitly called controlled synthetic channel-variation stress tests. Real held-out-room validation remains future work.
+
+\textbf{Architecture versus preprocessing confounding.}
+The current primary comparison uses raw/minimally processed CSI for both Raw CE and \method{} and uses exactly the same encoder architecture. The proposed method therefore does not receive an architectural advantage. The earlier heavily processed SIL pipeline is not used as the basis of the current claim.
+
+\textbf{Temporal-window redundancy.}
+The supplied split is explicitly treated as a window-level benchmark. The exact-overlap audit and component-disjoint evaluation were added to prevent a strong clean accuracy number from being interpreted as recording-independent generalization.
+
+\textbf{Statistical uncertainty.}
+The strict comparison is accompanied by a paired bootstrap confidence interval, a paired permutation test, and five component-disjoint folds. We do not fabricate multi-seed confidence intervals for the original clean experiment.
+
+\textbf{Robustness ratio.}
+We do not use a ratio such as a ``7.3$\times$ robustness improvement.'' Because the compared models have different clean accuracies and the stress-test domains are synthetic, absolute paired differences are more interpretable.
+
+\textbf{Chance-level interpretation.}
+For seven classes, uniform chance accuracy is approximately 14.29\%. We therefore do not describe 43\% accuracy as ``almost random.''
+
+\textbf{Mechanistic claims.}
+We do not claim that the temporal mean is proven to be a room fingerprint. The intervention tests whether changing this stable component affects the model. The causal interpretation remains deliberately limited.
+
+\subsection{Why the Clean-Accuracy Trade-off Matters}
+
+The original supplied split favors Raw CE by 2.40\pp. This is consistent with the possibility that stable channel cues are predictive within that benchmark. Removing or suppressing sensitivity to such cues can therefore reduce in-domain accuracy.
+
+The component-disjoint result provides a different perspective. Once strongly overlapping windows are grouped and kept within a single partition, Raw CE falls to 91.52\%, whereas \method{} reaches 94.28\%. The method thus trades some performance on the easy, redundant evaluation for better performance under a stricter partition.
+
+This does not prove that every stable channel cue is undesirable. Stable information can be predictive and may be useful in applications where the deployment environment is fixed. The contribution of \method{} is instead to make the classifier less dependent on a chosen stable component when that component is deliberately varied.
+
+\subsection{Why the Static/Dynamic Contrast Is Important}
+
+A generic augmentation objective could potentially improve robustness simply by regularizing the encoder. The static and dynamic interventions provide a more specific diagnostic. The method is substantially better under static swapping but not under dynamic swapping, and it is worse under time shuffling.
+
+The result is therefore consistent with the intended direction of the objective: it encourages stability to transformations applied to the stable component without asserting invariance to transformations of the temporal residual.
+
+This should not be overinterpreted as complete disentanglement. Dynamic swapping can destroy activity-specific information, and the temporal mean/residual decomposition is a simple signal decomposition rather than a learned causal factorization.
+
+\section{Limitations}
+
+Several limitations remain.
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{No real held-out-room validation.} The current experiments use one supplied dataset and synthetic perturbations. A multi-room collection with room labels or recording provenance is required to establish real cross-room generalization.
+    \item \textbf{The stable component is only a proxy.} The temporal mean captures a stable component of each window, but it is not a direct measurement of room geometry, multipath delay structure, or a unique room fingerprint.
+    \item \textbf{Component-disjoint is not recording-disjoint.} The strict protocol removes shared exact 150-row blocks, which is a strong temporal-overlap control. It does not reconstruct original recording IDs and therefore should not be called recording-independent generalization.
+    \item \textbf{Synthetic interventions are simplified.} Multipath changes, antenna geometry, fading, hardware gain, and noise can interact in ways not represented by the present per-subcarrier gain or offset transformations.
+    \item \textbf{Single fixed training seed for the principal split.} The original supplied-split result is a single-seed point estimate. The five-fold component-disjoint experiment provides variability across partitions, but it does not replace a full multi-seed study of the original protocol.
+    \item \textbf{Limited component ablation.} The current experiments isolate the complete proposed method from the matched CE baseline, but do not claim that every individual term of the objective has been independently identified as necessary. A more exhaustive loss-term ablation is a useful follow-up.
+    \item \textbf{Window-level dataset dependence.} The analysis is specific to the supplied UT-HAR arrays. Conclusions should not be generalized to all CSI-HAR datasets without repeating the provenance audit and strict evaluation.
+\end{enumerate}
+
+\section{Conclusion}
+
+This work revisits CSI-based human activity recognition from the perspective of controlled invariance rather than clean benchmark accuracy alone. We propose \method{}, a simple component-targeted consistency objective that decomposes a CSI window into a temporally stable component and a temporal residual, perturbs only the stable component, and encourages a shared encoder to preserve the activity representation.
+
+The method does not win on the original supplied window-level split: Raw CE achieves 99.00\% compared with 96.60\% for \method{}. However, this clean result changes substantially under controlled stress tests and under a stricter component-disjoint evaluation. At static perturbation $\sigma=0.4$, \method{} achieves 91.40\% versus 63.00\% for Raw CE. On the component-disjoint test set, \method{} reaches 94.28\% versus 91.52\%, a $+2.76\pp$ advantage supported by a 95\% paired-bootstrap interval of $[+0.59,+4.93]\pp$ and a paired permutation test of $p=0.00685$. The same direction is reproduced across all five component-disjoint folds.
+
+The appropriate conclusion is therefore not that \method{} has solved cross-room Wi-Fi HAR. Rather, the results show that a simple, physically motivated component-targeted perturbation can improve robustness to controlled static-channel variation and can improve performance when temporal-window redundancy is explicitly controlled. Real multi-room validation, recording-disjoint provenance, and broader physical channel perturbations remain necessary next steps.
+
+\begin{figure}[t]
+\centering
+\placeholder{4.2cm}{
+\textbf{Optional supplementary figure placeholder.}\\
+Temporal-overlap component-size distribution and exact zero-overlap verification.
+}
+\caption{Supplementary temporal-overlap audit. The final version may include the component-size distribution and the zero-overlap verification after the component-disjoint repartition.}
+\label{fig:supp_overlap}
+\end{figure}
+
+\begin{thebibliography}{99}
+
+\bibitem{abdelnasser2015wigest}
+H. Abdelnasser, M. Youssef, and K. A. Harras.
+WiGest: A ubiquitous WiFi-based gesture recognition system.
+In \textit{Proc. IEEE INFOCOM}, pp. 1472--1480, 2015.
+
+\bibitem{arjovsky2019irm}
+M. Arjovsky, L. Bottou, I. Gulrajani, and D. Lopez-Paz.
+Invariant risk minimization.
+arXiv:1907.02893, 2019.
+
+\bibitem{bardes2022vicreg}
+A. Bardes, J. Ponce, and Y. LeCun.
+VICReg: Variance-invariance-covariance regularization for self-supervised learning.
+In \textit{Proc. ICLR}, 2022.
+
+\bibitem{geirhos2020shortcut}
+R. Geirhos, J.-H. Jacobsen, C. Michaelis, A. Zemel, W. Brendel, B. Bethge, and F. A. Wichmann.
+Shortcut learning in deep neural networks.
+\textit{Nature Machine Intelligence}, 2:665--673, 2020.
+
+\bibitem{halperin2011tool}
+D. Halperin, W. Hu, A. Sheth, and D. Wetherall.
+Tool release: Gathering 802.11n traces with channel state information.
+\textit{ACM SIGCOMM Computer Communication Review}, 41(1):53, 2011.
+
+\bibitem{jiang2018towards}
+W. Jiang and J. Yin.
+Towards environment-independent device-free human activity recognition.
+In \textit{Proc. ACM MobiCom}, pp. 289--304, 2018.
+
+\bibitem{khosla2020supervised}
+P. Khosla, P. T. Wang, C. Isola, C. Liu, R. Salakhutdinov, and D. Krishnan.
+Supervised contrastive learning.
+In \textit{Advances in Neural Information Processing Systems}, vol. 33, pp. 18661--18673, 2020.
+
+\bibitem{ma2019wifi}
+Y. Ma, G. Zhou, and S. Wang.
+WiFi sensing with channel state information: A survey.
+\textit{ACM Computing Surveys}, 52(3):1--36, 2019.
+
+\bibitem{shi2022sensefi}
+Z. Shi, J. Liu, and J. Han.
+SenseFi: A library and benchmark on deep-learning-empowered WiFi human sensing.
+\textit{Patterns}, 3(3):100435, 2022.
+
+\bibitem{wang2021ei}
+D. Wang, K. Niu, and Z. Zheng.
+EI: Environment-independent activity recognition based on micro-Doppler signatures.
+In \textit{Proc. IEEE ICDCS}, pp. 686--696, 2021.
+
+\bibitem{yousefi2017survey}
+S. Yousefi, H. Narui, S. Dayal, S. Ermon, and S. Valaee.
+A survey on behavior recognition using WiFi channel state information.
+\textit{IEEE Communications Magazine}, 55(10):98--104, 2017.
+
+\bibitem{zheng2019widar3}
+Y. Zheng, Y. Zhang, K. Qian, G. Zhang, Y. Liu, C. Wu, and Z. Yang.
+Zero-effort cross-domain gesture recognition with Wi-Fi.
+In \textit{Proc. ACM MobiSys}, pp. 313--325, 2019.
+
+\end{thebibliography}
+
+\end{document}

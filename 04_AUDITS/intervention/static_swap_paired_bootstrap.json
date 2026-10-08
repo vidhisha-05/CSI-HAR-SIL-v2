@@ -1,0 +1,44 @@
+{
+  "seed": 42,
+  "bootstrap_seed": 20261005,
+  "bootstrap_replicates": 20000,
+  "test_samples": 500,
+  "condition": "static_swap_different_class",
+  "normalization": "train_fitted_per_subcarrier_mean_std",
+  "static_swap_dynamic_max_error": 4.4405460357666016e-06,
+  "accuracies": {
+    "raw_ce": 19.8,
+    "generic_consistency": 34.0,
+    "sil_v2": 41.4
+  },
+  "comparisons": {
+    "SIL_v2_minus_GENERIC": {
+      "accuracy_a": 41.4,
+      "accuracy_b": 34.0,
+      "difference_pp": 7.399999999999995,
+      "ci95_low_pp": 4.199999999999998,
+      "ci95_high_pp": 10.799999999999999,
+      "bootstrap_p_value_two_sided": 0.0,
+      "n_bootstrap": 20000
+    },
+    "SIL_v2_minus_RAW_CE": {
+      "accuracy_a": 41.4,
+      "accuracy_b": 19.8,
+      "difference_pp": 21.599999999999998,
+      "ci95_low_pp": 17.6,
+      "ci95_high_pp": 25.6,
+      "bootstrap_p_value_two_sided": 0.0,
+      "n_bootstrap": 20000
+    },
+    "GENERIC_minus_RAW_CE": {
+      "accuracy_a": 34.0,
+      "accuracy_b": 19.8,
+      "difference_pp": 14.200000000000001,
+      "ci95_low_pp": 10.200000000000001,
+      "ci95_high_pp": 18.2,
+      "bootstrap_p_value_two_sided": 0.0,
+      "n_bootstrap": 20000
+    }
+  },
+  "primary_decision": "The SIL-v2 advantage over generic consistency on static-swap is supported by the 95% paired bootstrap confidence interval."
+}

@@ -1,0 +1,39 @@
+﻿# CSI-HAR SIL-v2 — Reproducibility Environment
+
+## Software
+
+Python:
+3.11.9
+
+PowerShell:
+5.1
+
+Operating system:
+Microsoft Windows
+
+## Hardware
+
+Experiments were performed using an NVIDIA RTX 3050 GPU.
+
+Exact driver and CUDA versions should be recorded from the final
+reproducibility environment when required.
+
+## Data
+
+The raw UT-HAR arrays are excluded from the public repository.
+
+## Model weights
+
+Canonical model checkpoints are maintained separately from Git
+because they are binary artifacts.
+
+## Repository portability
+
+Active code uses repository-relative paths where applicable.
+No user-specific Windows installation path is required.
+
+## Reproducibility note
+
+Exact package versions should be captured in a requirements or
+environment file before final archival if exact environment
+recreation is required.

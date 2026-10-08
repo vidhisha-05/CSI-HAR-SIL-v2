@@ -1,0 +1,59 @@
+{
+  "protocol": "component_disjoint_exact_150_row_overlap",
+  "seed": 20261005,
+  "overlap_len": 150,
+  "total_windows": 4973,
+  "components": 556,
+  "crossing_components": 0,
+  "component_counts": {
+    "train": 412,
+    "test": 73,
+    "val": 71
+  },
+  "summary": {
+    "train": {
+      "components": 412,
+      "windows": 3968,
+      "class_counts": {
+        "0": 526,
+        "1": 353,
+        "2": 1164,
+        "3": 395,
+        "4": 967,
+        "5": 319,
+        "6": 244
+      }
+    },
+    "val": {
+      "components": 71,
+      "windows": 498,
+      "class_counts": {
+        "0": 63,
+        "1": 45,
+        "2": 151,
+        "3": 50,
+        "4": 118,
+        "5": 41,
+        "6": 30
+      }
+    },
+    "test": {
+      "components": 73,
+      "windows": 507,
+      "class_counts": {
+        "0": 68,
+        "1": 45,
+        "2": 150,
+        "3": 50,
+        "4": 124,
+        "5": 40,
+        "6": 30
+      }
+    }
+  },
+  "source_dataset": {
+    "train": 3977,
+    "val": 496,
+    "test": 500
+  }
+}

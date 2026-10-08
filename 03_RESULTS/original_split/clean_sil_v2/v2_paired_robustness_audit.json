@@ -1,0 +1,75 @@
+﻿{
+  "seed": 42,
+  "test_samples": 500,
+  "normalization": "train_fitted_per_subcarrier_mean_std",
+  "models": {
+    "raw_ce": "D:\\pcems\\csi_har_selective_invariance\\results\\clean_sil_v2\\raw_ce_best.pt",
+    "sil_v2": "D:\\pcems\\csi_har_selective_invariance\\results\\clean_sil_v2\\raw_sil_v2_best.pt"
+  },
+  "results": {
+    "clean": {
+      "raw_ce": 99.0,
+      "sil_v2": 96.6,
+      "sil_v2_minus_ce_pp": -2.4000000000000057,
+      "raw_ce_drop_pp": 0.0,
+      "sil_v2_drop_pp": 0.0
+    },
+    "normal_gain_sigma_0.1": {
+      "raw_ce": 97.8,
+      "sil_v2": 96.6,
+      "sil_v2_minus_ce_pp": -1.2000000000000028,
+      "raw_ce_drop_pp": -1.2000000000000028,
+      "sil_v2_drop_pp": 0.0
+    },
+    "normal_gain_sigma_0.2": {
+      "raw_ce": 89.8,
+      "sil_v2": 95.6,
+      "sil_v2_minus_ce_pp": 5.799999999999997,
+      "raw_ce_drop_pp": -9.200000000000003,
+      "sil_v2_drop_pp": -1.0
+    },
+    "normal_gain_sigma_0.4": {
+      "raw_ce": 63.0,
+      "sil_v2": 91.4,
+      "sil_v2_minus_ce_pp": 28.400000000000006,
+      "raw_ce_drop_pp": -36.0,
+      "sil_v2_drop_pp": -5.199999999999989
+    },
+    "normal_gain_sigma_0.8": {
+      "raw_ce": 41.4,
+      "sil_v2": 74.4,
+      "sil_v2_minus_ce_pp": 33.00000000000001,
+      "raw_ce_drop_pp": -57.6,
+      "sil_v2_drop_pp": -22.19999999999999
+    },
+    "uniform_gain_sigma_0.4": {
+      "raw_ce": 62.4,
+      "sil_v2": 93.4,
+      "sil_v2_minus_ce_pp": 31.000000000000007,
+      "raw_ce_drop_pp": -36.6,
+      "sil_v2_drop_pp": -3.1999999999999886
+    },
+    "additive_static_offset": {
+      "raw_ce": 43.6,
+      "sil_v2": 75.4,
+      "sil_v2_minus_ce_pp": 31.800000000000004,
+      "raw_ce_drop_pp": -55.4,
+      "sil_v2_drop_pp": -21.19999999999999
+    },
+    "static_swap_different_class": {
+      "raw_ce": 19.8,
+      "sil_v2": 41.4,
+      "sil_v2_minus_ce_pp": 21.599999999999998,
+      "raw_ce_drop_pp": -79.2,
+      "sil_v2_drop_pp": -55.199999999999996
+    },
+    "time_shuffle": {
+      "raw_ce": 49.2,
+      "sil_v2": 39.6,
+      "sil_v2_minus_ce_pp": -9.600000000000001,
+      "raw_ce_drop_pp": -49.8,
+      "sil_v2_drop_pp": -56.99999999999999
+    }
+  },
+  "static_swap_dynamic_max_error": 4.4405460357666016e-06
+}

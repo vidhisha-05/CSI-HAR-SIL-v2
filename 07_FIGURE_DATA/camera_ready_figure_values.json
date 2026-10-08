@@ -1,0 +1,137 @@
+﻿{
+  "metadata": {
+    "project": "CSI-HAR SIL-v2 Camera Ready",
+    "status": "verified",
+    "purpose": "Single source of truth for camera-ready figures",
+    "do_not_invent_values": true
+  },
+
+  "original_split": {
+    "raw_ce": {
+      "accuracy": 99.00
+    },
+    "sil_v2": {
+      "accuracy": 96.60
+    }
+  },
+
+  "static_gain_robustness": {
+    "sigma": [0.0, 0.1, 0.2, 0.4, 0.8],
+    "raw_ce_accuracy": [99.00, 97.80, 89.80, 63.00, 41.40],
+    "sil_v2_accuracy": [96.60, 96.60, 95.60, 91.40, 74.40]
+  },
+
+  "unseen_static_interventions": {
+    "conditions": [
+      "Clean",
+      "Uniform static gain",
+      "Additive static offset",
+      "Static swap"
+    ],
+    "raw_ce_accuracy": [99.00, 62.40, 43.60, 19.80],
+    "sil_v2_accuracy": [96.60, 93.40, 75.40, 41.40]
+  },
+
+  "dynamic_intervention_control": {
+    "conditions": [
+      "Static swap",
+      "Dynamic swap"
+    ],
+    "raw_ce_accuracy": [19.80, 62.20],
+    "sil_v2_accuracy": [41.40, 42.40]
+  },
+
+  "static_swap_statistics": {
+    "sil_minus_raw_pp": 21.60,
+    "bootstrap_ci_low_pp": 17.60,
+    "bootstrap_ci_high_pp": 25.60
+  },
+
+  "component_disjoint_single_split": {
+    "raw_ce": {
+      "accuracy": 91.52,
+      "macro_f1": 0.8936
+    },
+    "sil_v2": {
+      "accuracy": 94.28,
+      "macro_f1": 0.9197
+    },
+    "accuracy_difference_pp": 2.76,
+    "bootstrap_ci_low_pp": 0.59,
+    "bootstrap_ci_high_pp": 4.93,
+    "paired_permutation_p": 0.006850
+  },
+
+  "component_disjoint_5fold": {
+    "folds": [
+      {
+        "fold": 1,
+        "raw_ce_accuracy": 93.8693,
+        "sil_v2_accuracy": 94.8744,
+        "delta_pp": 1.0050,
+        "raw_ce_macro_f1": 0.897823,
+        "sil_v2_macro_f1": 0.920650
+      },
+      {
+        "fold": 2,
+        "raw_ce_accuracy": 92.9577,
+        "sil_v2_accuracy": 93.7626,
+        "delta_pp": 0.8048,
+        "raw_ce_macro_f1": 0.893197,
+        "sil_v2_macro_f1": 0.903288
+      },
+      {
+        "fold": 3,
+        "raw_ce_accuracy": 92.5628,
+        "sil_v2_accuracy": 93.6683,
+        "delta_pp": 1.1055,
+        "raw_ce_macro_f1": 0.888476,
+        "sil_v2_macro_f1": 0.900694
+      },
+      {
+        "fold": 4,
+        "raw_ce_accuracy": 91.5323,
+        "sil_v2_accuracy": 92.9435,
+        "delta_pp": 1.4113,
+        "raw_ce_macro_f1": 0.891203,
+        "sil_v2_macro_f1": 0.907345
+      },
+      {
+        "fold": 5,
+        "raw_ce_accuracy": 92.3771,
+        "sil_v2_accuracy": 93.5807,
+        "delta_pp": 1.2036,
+        "raw_ce_macro_f1": 0.879986,
+        "sil_v2_macro_f1": 0.900045
+      }
+    ],
+    "aggregate": {
+      "raw_ce_accuracy_mean": 92.66,
+      "raw_ce_accuracy_std": 0.85,
+      "sil_v2_accuracy_mean": 93.77,
+      "sil_v2_accuracy_std": 0.70,
+      "accuracy_difference_mean_pp": 1.11,
+      "accuracy_difference_std_pp": 0.23,
+      "raw_ce_macro_f1_mean": 0.8901,
+      "raw_ce_macro_f1_std": 0.0066,
+      "sil_v2_macro_f1_mean": 0.9064,
+      "sil_v2_macro_f1_std": 0.0085,
+      "macro_f1_difference_mean": 0.0163,
+      "macro_f1_difference_std": 0.0053,
+      "sil_wins": 5
+    }
+  },
+
+  "temporal_overlap_audit": {
+    "total_windows": 4973,
+    "components": 556,
+    "components_size_ge_5": 442,
+    "components_size_ge_10": 161,
+    "components_size_ge_20": 45,
+    "components_size_ge_50": 0,
+    "largest_component": 28,
+    "cross_split_components": 425,
+    "label_pure_components": 556,
+    "shared_exact_150_row_blocks_after_repartition": 0
+  }
+}

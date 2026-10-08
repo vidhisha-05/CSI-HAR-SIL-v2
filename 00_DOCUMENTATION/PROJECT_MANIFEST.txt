@@ -1,0 +1,62 @@
+﻿# CSI-HAR SIL-v2 — Camera-Ready Project Manifest
+
+## Purpose
+
+Curated research repository for the CSI-HAR SIL-v2 study.
+
+## Repository structure
+
+00_DOCUMENTATION/
+    Research documentation and project notes.
+
+01_DATA/
+    Raw UT-HAR data.
+    Excluded from the public repository.
+
+02_CODE/
+    final/
+        Authoritative reproducibility and evaluation scripts.
+    figure_generation/
+        Camera-ready figure-generation scripts.
+
+03_RESULTS/
+    Verified active experimental results.
+
+04_AUDITS/
+    Provenance, temporal-overlap, and intervention audits.
+
+05_CHECKPOINTS/
+    Canonical model checkpoints.
+    Excluded from the public repository because they are binary
+    model artifacts.
+
+06_FIGURES/
+    Final camera-ready figure output.
+
+07_FIGURE_DATA/
+    Verified numerical data used for figures.
+
+08_PAPER/
+    Active manuscript and paper materials.
+
+09_ENVIRONMENT/
+    Reproducibility information.
+
+99_ARCHIVE/
+    Historical experiments and development artifacts.
+    Not authoritative for current paper results.
+
+## Scientific scope
+
+The current work evaluates component-targeted static perturbation
+consistency, controlled static-component robustness, temporal
+overlap, and component-disjoint evaluation.
+
+The work does not establish real cross-room generalization or
+causal proof of a room fingerprint.
+
+## Reproducibility rule
+
+Only active project files should be used for current paper results.
+Historical material in 99_ARCHIVE is not authoritative unless it
+has been independently verified and promoted into the active tree.

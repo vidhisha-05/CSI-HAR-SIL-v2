@@ -1,0 +1,38 @@
+﻿{
+  "seed": 42,
+  "input_shape": [
+    250,
+    90
+  ],
+  "preprocessing": {
+    "hampel": false,
+    "detrend": false,
+    "bandpass": false,
+    "velocity": false,
+    "acceleration": false,
+    "stft": false,
+    "global_train_fitted_normalization": true
+  },
+  "method": {
+    "static_definition": "temporal_mean_per_subcarrier",
+    "residual_definition": "x_minus_static",
+    "perturbation": "static_multiplicative_gain",
+    "gain_distribution": "Normal(0, sigma^2)",
+    "sigma": 0.4,
+    "alpha_perturbed_ce": 1.0,
+    "lambda_inv": 0.15,
+    "objective": "CE(clean) + alpha*CE(perturbed) + lambda*cosine"
+  },
+  "raw_ce": {
+    "best_val_acc": 1.0,
+    "test_acc": 0.99,
+    "best_epoch": 64,
+    "checkpoint": "D:\\pcems\\csi_har_selective_invariance\\results\\clean_sil_v2\\raw_ce_best.pt"
+  },
+  "raw_sil_v2": {
+    "best_val_acc": 0.9858870967741935,
+    "test_acc": 0.966,
+    "best_epoch": 48,
+    "checkpoint": "D:\\pcems\\csi_har_selective_invariance\\results\\clean_sil_v2\\raw_sil_v2_best.pt"
+  }
+}
